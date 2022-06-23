@@ -313,12 +313,6 @@ Your total is {sum(player.hand(Card.value))}''')
     return players
 
 
-        # elif dealer_hand(sum(Card.value)) == 21:
-        #         print("The Dealer had gotten a Blackjack...")
-        #         for _ in temp_list:
-    
-        #             continue
-
 def end_game(players , dealer_hand):
 
     for player in players:  # checks if dealer wins by default
