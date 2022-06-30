@@ -4,5 +4,7 @@ A recreation of the card game Blackjack in Python
 
 TODO
   Implement Splitting
-  Add Reset function
-  Minimize redundancies
+  1) ~~Add Reset function~~
+  2) Minimize redundancies
+  3) Make ace cards objects
+  4) Fix card output errors
