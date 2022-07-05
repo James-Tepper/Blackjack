@@ -11,7 +11,7 @@ TODO
 
 
 7/5 Updates:
-Changed Card list to dictionary
-Debugged Player Methods
-Made MAIN for readable
-Added docstrings
+  Changed Card list to dictionary
+  Debugged Player Methods
+  Made MAIN more readable
+  Added docstrings
