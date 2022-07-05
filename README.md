@@ -10,8 +10,8 @@ TODO
   4) Fix card output errors
 
 
-7/5 Updates:
-  Changed Card list to dictionary
-  Debugged Player Methods
-  Made MAIN more readable
-  Added docstrings
+7/5 Updates!:
+ 1) Changed Card list to dictionary
+ 2) Debugged Player Methods
+ 3) Made MAIN more readable
+ 4) Added docstrings
