@@ -1,100 +1,205 @@
 '''
+------------------------------
 Author: James Tepper
 Email: jamesatepper@gmail.com
-----------------------------
+------------------------------
 Everything is still in the works
 Any changes or optimizations are highly appreciated!
+------------------------------
+TODO
+Fix Reset function
+Implement something that stops the game if still_in is False for everyone
+Implement gradual_print
+Make output more readable and organized
+    remove --------- in print statements
+Consider making ACEs an object
 '''
-
-
-
-
-
-#RESET PAYOUTS!!!
 
 import random
 import sys
 import time
 
-ACE_CARD = object()
-#MAKE ACE CARDS AN OBJECT
 
 class Player:
     '''
-    Defines the user
+    User's attributes
     '''
+    def __init__(self, name) -> None:
+        self.name: str = name
+        self.bets: int = 0
+        self.hand: list[Card] = []
+        self.total_card_sum: int = 0
+        self.chips: int = 500
+        self.still_in: bool = True
 
-    def __init__(self , name) -> None:
-        self.name : str = name
-        self.bets : int = 0
-        self.hand : list[Card] = []
-        self.total_card_sum : int = 0
-        self.chips : int = 500
-        self.still_in : bool = True
+        if self.name == "Dealer":
+            self.dealer_in = True
 
 
-    def find_sum_of_hand_and_check_for_ace(self) -> int:
+    def check_for_blackjack(self):
         '''
-        Calculate user's total card value and looks for aces if user busted
-        If aces are found, they become a 1
+        Only used after draw to check for blackjack, payout 3/1
         '''
-        self.total_card_sum = 0 #to run multiple times without over adding
+        if self.total_card_sum == 21:
+
+            payout = self.bets * 3
+
+            print(f'''
+{self.name} has gotten a Blackjack!!!
+Payout: {payout} chips!!!''')
+
+            self.chips += payout
+            self.still_in = False
+
+
+    def check_for_win_loss_tie(self, dealer) -> int:
+        '''
+        TODO ONLY USE IF DEALER'S total is >= 17
+        ONLY WHEN DEALER CAN NO LONGER HIT
+        Checks Player's hand against dealer's and sees if dealer has to hit or not
+        '''
+        Player.calculate_card_sum(self)
+        Player.calculate_card_sum(dealer)
+
+        Player.results(self, dealer)
+
+        #Player wins
+        if dealer.total_card_sum < self.total_card_sum:
+
+            payout = self.bets * 2
+            self.chips += payout
+
+            print(f'''
+            You've Won {payout} chips!!!
+            CHIPS REMAINING: {self.chips}''')
+        #Player ties
+        elif dealer.total_card_sum == self.total_card_sum:
+
+            self.chips += self.bets
+
+            print(f'''
+            You break even...
+            CHIPS REMAINING: {self.chips}''')
+        #Player loses
+        else:
+            print(f'''
+            {self.name} has lost their {self.bets} chip bet...)
+            CHIPS REMAINING: {self.chips}''')
+
+
+        self.bets = 0
+        self.still_in = False
+
+
+    def results(self, dealer) -> str:
+        '''
+        Prints player and dealer's cards and totals
+        '''
+        print(f'''
+{self.name}'s Cards and Total:
+{Player.print_just_hand(self)}
+{self.total_card_sum}
+
+Dealer's Cards Total:
+{Player.print_just_hand(dealer)}
+{dealer.total_card_sum}'''.title().replace("s'" , "'s"))
+
+
+    def bust(self):
+        '''
+        Takes player out of game and removes their bet
+        '''
+        if self.total_card_sum > 21:
+
+            if not self.name == "Dealer":
+                print(f'''
+{self.name} has busted...
+CHIPS LOST: {self.bets}
+CHIPS REMAINING {self.chips}''')
+
+                self.bets = 0
+                self.still_in = False
+
+            else:
+                self.dealer_in = False
+
+
+    def does_player_lose_to_dealer(self , dealer) -> bool:
+        '''
+        Checks if dealer has higher value hand than player
+        '''
+        if dealer.total_card_sum > self.total_card_sum:
+
+            print(f'''
+            {self.name} has lost their {self.bets} chip bet...)
+            CHIPS REMAINING: {self.chips}''')
+
+            self.bets = 0
+            self.still_in = False
+
+
+
+    def calculate_card_sum(self) -> int:
+        '''
+        Calculates the sum of a hand and **checks for aces** (DOESN'T PRINT)
+        '''
+        self.total_card_sum = 0
+        temp_sum = 0
 
         for card in self.hand:
-
             self.total_card_sum += card.value
 
 
         if self.total_card_sum > 21:
-            self.total_card_sum = 0
 
             for card in self.hand:
 
                 if card.index == "ace":
+
                     card.value = 1
 
-                self.total_card_sum += card.value
+                temp_sum += card.value
+
+            self.total_card_sum = temp_sum
+
+            if self.total_card_sum > 21:
+                Player.bust(self)
 
 
-#output hand
-    def print_hand(self) -> str:
+    def print_hand_and_sum(self) -> str:
         '''
-        Outputs hand of player
+        Outputs sum and individual cards (calculate_card_sum prior to use)
         '''
+        print(f'''
+{self.name}'s Total Value: {self.total_card_sum}''')
 
-        total_value = 0
-        temp_suit_list = []
-        temp_value_list = []
+        counter = 1
 
         for card in self.hand:
 
-            total_value += card.value
+            print(f'''
+Card #{counter}: {card.index} Of {card.suit}'''.title())
 
-            temp_suit_list.append(card.suit)
-            temp_value_list.append(card.value)
+            counter += 1
 
-        i = 1
-
-        for suit in temp_suit_list:
-
-            for value in temp_value_list:
-
-                print(f'''
-{self.name}:
-Card #{i} {value} Of {suit}''')
-                i += 1
-                break
-
-#         print(f'''
-# Suit: {temp_suit_list}
-# Value: {temp_value_list}'''.replace("_", " ").title())
+        return "\033[F"
 
 
-#         print(f'''
-# Total Value: {total_value}''')
+    def print_just_hand(self) -> str:
+        '''
+        Only output cards **No values*
+        '''
+        counter = 1
+
+        for card in self.hand:
+
+            print(f'''
+Card #{counter}: {card.index} Of {card.suit}'''.title())
+
+            counter += 1
 
 
-    def reset(self) -> any:
+    def reset(self):
         '''
         Resets bets, still in, and cards in deck from player
         '''
@@ -104,20 +209,27 @@ Card #{i} {value} Of {suit}''')
 
         for card in self.hand:
 
-            if card == "ace":
+            if card.index == "ace":
                 card.value = 11
-            
-            DECK.append(card)
+
+            DECK.append(card.index , card.suit)
 
 
 
-'''ADD A SUM PART'''
+    # def get_card_names(self) -> str:
+    #     '''
+    #     Outputs just the name of cards. Ex. Ace, Jack, Three
+    #     '''
+    #     temp_list: list[str] = []
 
- ###   MAYBE PASS IN ACE_CARD OBJECT
+    #     for card in self.hand:
+
+    #         temp_list.append(card.index)
+
+    #         return ", ".join(temp_list)
 
 
-                #ACE == 1
-                #continue
+
 
 class Card:
     '''
@@ -126,13 +238,14 @@ class Card:
     def __init__(self, index: str, suit: str):
         self.index = index
         self.suit = suit
-        self.value = cardValues[index]
+        self.value = cardvalues[index]
 
-    def __str__(self) -> str:
-         return f'''{self.index} of {self.suit}'''.title()
+    # TODO Remove
+    # def __str__(self) -> str: 
+    #     return print(f'''{self.index} of {self.suit}'''.title())
 
 
-cardValues = {
+cardvalues = {
     "ace": 11,
     "jack": 10,
     "king": 10,
@@ -148,18 +261,20 @@ cardValues = {
     "ten": 10,
 }
 
+DECK: list[Card] = []
 
-DECK : list[Card] = []
+def create_deck(cardvalues : dict[str , int], new_deck : list[Card]) -> list[Card]:
+    '''
+    Creates DECK of cards
+    '''
+    for index in cardvalues:
 
-for index in cardValues:
+        for suit in ["spades", "hearts", "diamonds", "clubs"]:
 
-    for suit in ["spades", "hearts", "diamonds", "clubs"]:
-
-        DECK.append(Card(index , suit))
+            new_deck.append(Card(index, suit))
 
 
-
-#def start():
+# def start():
 WELCOME_PROMPT = ('''
 Welcome to Blackjack!
 Rules: Input the amount of people playing along with your names.
@@ -185,6 +300,7 @@ Good luck and have fun!!!
 
 #     return information
 
+
 def get_amount_of_users_playing() -> int:
     '''
     Find how many users there are
@@ -192,9 +308,10 @@ def get_amount_of_users_playing() -> int:
     while True:
 
         try:
-            amount = int(input("How many people will be playing? [Min 1, Max 7]: \n"))
+            amount = int(
+                input("How many people will be playing? [Min 1, Max 7]: \n"))
 
-            if amount >= 1 and amount <=7:
+            if 1 <= amount <= 7:
                 break
 
             print("INVALID NUMBER OF PLAYERS")
@@ -210,13 +327,13 @@ def get_player_name_from_user(amount: int) -> list[Player]:
     '''
     Initializes Player class and stores as "players"
     '''
-    players : list[Player] = []
+    players: list[Player] = []
 
     for i in range(amount):
 
         while True:
 
-            name = input(f'''What is your name Player #{1 + i}?: 
+            name = input(f'''What is your name Player #{1 + i}?:
 ''').title()
 
             if name == "Dealer":
@@ -229,44 +346,59 @@ def get_player_name_from_user(amount: int) -> list[Player]:
     return players
 
 
-
 def bet(players: list[Player]) -> int:
     '''
-    Users place bets between 10 - max chips
+    Users place bets between 10 , max chips
     '''
     for player in players:
 
         if player.chips < 10:
+
+            print(f'''
+{player.name} has less an insufficient amount of chips''')
+            player.still_in = False
+
             continue
 
         while True:
-            place_bet = (int(input(f'''{player.name}. You have {player.chips}
-How much would you like to bet? [Type and number between 10 and {player.chips} chips]''')))
 
-            if place_bet >= 10 and place_bet <= player.chips:
+            try:
 
-                player.bets = place_bet
-                player.chips -= player.bets
-                print(f'''{player.name} has bet {place_bet}''')
-                break
+                place_bet = (int(input(f'''{player.name}. You have {player.chips}
+How much would you like to bet? [Type and number between 10 and {player.chips} chips]:\n''')))
 
-            print("Invalid Input")
-            continue
+                if 10 <= place_bet <= player.chips:
+
+                    player.bets = place_bet
+                    player.chips -= player.bets
+                    print(f'''\n{player.name} has bet {place_bet} chips!\n''')
+
+                    break
+
+            except ValueError:
+                print("INVALID INPUT")
+
+                continue
 
 
-def deal_cards(players , dealer) -> list[Card]:
-
-#Player takes a card
+def deal_cards(players : list[Player], dealer : object) -> list[Card]:
+    '''
+    Players are dealt a card then the dealer (2x)
+    Dealer's second card is shown to players
+    '''
+# Player takes a card
     for player in players:
 
-        card = random.choice(DECK)      #Player picks up a card
-        player.hand.append(card)        #Player puts card into their hand
-        DECK.remove(card)               #DECK removes taken card
+        card = random.choice(DECK)  # Player picks up a card
+        player.hand.append(card)  # Player puts card into their hand
+        DECK.remove(card)  # DECK removes taken card
 
-        print('''First Card''')
-        Player.print_hand(player)
+        print(f'''------------------------------------
+{player.name}'s First Card: {card.index} Of {card.suit}
+''')
 
-#Dealer takes a card
+# Dealer takes a card
+    print("The Dealer takes his first card.")
     card = random.choice(DECK)
     dealer.hand.append(card)
     DECK.remove(card)
@@ -277,249 +409,211 @@ def deal_cards(players , dealer) -> list[Card]:
         player.hand.append(card)
         DECK.remove(card)
 
-        print('''Starting Hand''')
-        Player.print_hand(player)
+        print(f'''------------------------------------
+{player.name}'s Second Card: {card.index} Of {card.suit}
+------------------------------------''')
+
+        print('''
+    Starting Hand''')
+
+        Player.calculate_card_sum(player)
+        Player.print_hand_and_sum(player)
 
     card = random.choice(DECK)
     dealer.hand.append(card)
     DECK.remove(card)
-    print(f"\nThe Dealer's second card is a {Card.__str__(card)}")
+    print(f'''
+Dealer's Second Card: {card.index} Of {card.suit}
+------------------------------------''')
 
-    return players , dealer
+    return players, dealer
 
 
-def check_for_blackjack_after_draw(players):
+def check_for_blackjack_after_draw(players : list[Player]):
     '''
-    Sees if user got a 21 off from deal_cards
+    Sees if user got a blackjack off from deal_cards
     '''
     for player in players:
 
-        payout = 0
-
-        Player.find_sum_of_hand_and_check_for_ace(player)
-
-        if player.total_card_sum == 21:
-    #ADD ARGS!!!!!!!!!!!!!!!!!!!
-            payout = player.bets * 3    #Blackjack 3/1 payout
-
-            print(f'''
-{player.name} has gotten a Blackjack!!!
-Payout: {payout} chips!!!''')
-
-            player.chips += payout
-            player.still_in = False
-            continue
-
-        else:
-            continue
+        Player.check_for_blackjack(player)
 
     return players
 
 
-
-def hit_or_stand(players):
+def hit_or_stand(players : list[Player]):
     '''
     Prompts players to hit or stand
     '''
-
     for player in players:
 
-        payout = 0
+        while player.still_in:
 
-        while player.still_in:         #loop 1
+            Player.calculate_card_sum(player)
 
-            Player.find_sum_of_hand_and_check_for_ace(player)
+            user_hit_or_stand = input(f'''
+{Player.print_hand_and_sum(player)}
+{player.name}, Would you like to Hit or Stand?: \n'''.title().replace("s'" , "'s")).upper()
 
-            hit_or_stand = input(
-f'''
-{player.name}'s Cards:
-{Player.print_hand(player)})
+            if not user_hit_or_stand == "HIT" and not user_hit_or_stand == "STAND":
 
-{player.name}'s accumulated value is {player.total_card_sum}
-Would you like to Hit or Stand?: \n''').upper()
-
-
-            if not hit_or_stand == "HIT" or not hit_or_stand == "STAND":
                 print("Invalid Input")
                 continue
 
-            if hit_or_stand == "STAND":
+            if user_hit_or_stand == "STAND":
+
                 print(f'''
 {player.name} has chosen to stand.
 Your total is {player.total_card_sum}''')
                 break
 
-            if hit_or_stand == "HIT":
-
-                #def hit(player)
+            if user_hit_or_stand == "HIT":
 
                 card = random.choice(DECK)
                 player.hand.append(card)
-                print(f'''{player.name} has drawn a {player.hand.card.index[-1]}''')
 
-                Player.find_sum_of_hand_and_check_for_ace(player)
+                print(f'''\n{player.name} has drawn a {card.index} Of {card.suit}'''.title())
 
-                if player.total_card_sum > 21:
-                    print(f'''{player.name} has BUSTED...
-You have lost {player.bets} chip bet''')
+                Player.calculate_card_sum(player)
 
-                    player.still_in = False
-
-
-
-                elif player.total_card_sum == 21:
-                    payout = player.bets * 2
-                    player.chips += payout
-                    print(f'''
-{player.name} has gotten 21!!!
-Payout: {payout}''')
-                    
-                    player.still_in = False
-
-
-                else:
-                    continue
+        continue
 
     return players
-    
-
-def end_game(players , dealer_hand):
-
-    for player in players:  # checks if dealer wins by default
-
-        if sum(dealer_hand.card.value) > sum(player.hand.card.value):
-
-            print(f'''
-{player.name}'s Total {sum(player.hand.card.value)} 
-Dealer's Total: {sum(dealer_hand.card.value)}
-You lose your {player.bets} chip bet''')
-            player.still_in = False
-
-        else:
-            continue
-
-    while player.still_in == True: #checks if list is empty 
-
-        print(f'''The Dealer has a {dealer_hand.card.suit}
-Dealer Total: {sum(dealer_hand.card.value)}''')
-
-        if sum(dealer_hand.card.value) == 21:
-
-            print("The Dealer has a Blackjack!!!")
-
-            for player in player:
-                print(f"{player.name} has lost {player.bet} chips")
-                player.still_in = False
-
-            break
-
-        elif sum(dealer_hand.card.value) <= 16:
-
-            print(f'''
-Dealer Total: {sum(dealer_hand.card.value)}
-The dealer has to draw a card!!!''')
-
-            card = random.choice(DECK)
-            dealer_hand.append(card)
-            DECK.remove(card)
-
-            print(f'''The dealer has drawn a {dealer_hand.card.suit[-1]}''')
-
-            break
-
-        else:
-            print(f'''
-The Dealer has to stand...
-Dealer's Card Value: {dealer_hand.card.value}''')
-
-            return players , dealer_hand
 
 
+def end_game(players : list[Player], dealer : object):
+    '''
+    Compares dealer's hand to players still in
+    '''
+    print("The Dealer reveals his hand...")
 
-def final_part(players , dealer_hand):
-    
     for player in players:
 
         payout = 0
 
-        if sum(dealer_hand.card.value) > sum(player.hand(Card.value)):
+        if not player.still_in:
+            continue
 
-            print(f'''
-{player.name}'s Total {sum(player.hand(Card.value))} 
-Dealer's Total: {sum(dealer_hand.card.value)}
-You lose your {player.bets} chip bet''')
-            player.still_in = False 
+        Player.does_player_lose_to_dealer(player , dealer)
 
-        elif sum(sum(dealer_hand.card.value)) == sum(player.hand.card.value):
-            print(f'''
-{player.name} has the same total value as the Dealer
-You break even.''')
-            player.chips += player.bet
+        Player.calculate_card_sum(dealer)
+        Player.print_hand_and_sum(dealer)
 
-        else:
+        if 17 <= dealer.total_card_sum <= 21:
             print(f'''
-{player.name}'s Total Value: {player.hand.card.value})
-Dealer's Total Value: {dealer_hand.card.value})
-{player.name} has won {player.bet * 2}!!!''')
-            payout = player.bet * 2
+        The Dealer has to stand...
+        Dealer's Card Value: {dealer.total_card_sum}''')
+
+            Player.check_for_win_loss_tie(player, dealer)
+
+            continue
+
+        while dealer.total_card_sum <=16:
+
+            if dealer.total_card_sum < player.total_card_sum:
+
+                print(f'''
+Dealer's Total: {dealer.total_card_sum}
+It's less than 17 so he must draw a card!''')
+
+                card = random.choice(DECK)
+                dealer.hand.append(card)
+                DECK.remove(card)
+
+                print(f'''The Dealer has drawn a {card.index} Of {card.suit}'''.title())
+
+                Player.calculate_card_sum(dealer)
+                Player.bust(dealer)
+                Player.does_player_lose_to_dealer(player , dealer)
+
+                if dealer.dealer_in is False:
+                    break
+
+            else:
+                Player.check_for_win_loss_tie(player , dealer)
+                break
+
+        if dealer.dealer_in is False:
+
+            payout = player.bets * 2
             player.chips += payout
 
-        player.still_in = False
-        continue
+            print(f'''
+The Dealer has busted!
+All players that are still in win!!!
+{player.name}'s Payout: {payout} chips''')
 
-    return player
+            player.still_in = False
+            continue
+
+    return players , dealer
 
 
+# def final_part(players : list[Player], dealer : object):
+#     '''
+#     Calls method to finalize comparing dealer and player hands
+#     '''
+#     for player in players:
 
-def post_game(players : list[Player] , dealer_hand : list[Card]):
+#         Player.check_for_win_loss_tie(player , dealer)
 
+#     return players , dealer
 
+def checking_if_worked(players : list[Player]) -> any:
+    '''
+    Checking if worked...
+    '''
     for player in players:
 
+        if player.still_in is True:
+
+            print("IT DIDN'T WORKKKKKKKK")
+
+
+def post_game(players : list[Player], dealer : Player):
+    '''
+    Prints total chips and resets bets, still_in, and hand
+    '''
+    for player in players:
 
         print(f'''
 {player.name}'s Total Chips: {player.chips}''')
-        player.reset(dealer_hand)
 
-    Player.reset(players)
+        Player.reset(player)
+
+    Player.reset(dealer)
 
     return players
 
 
-'''
-main functions needs some work 
-'''
-
-def gradually_print(output: str):
+def gradual_print(output: str):
+    '''Nicer way out outputting text'''
     for char in output:
-        time.sleep(0.05)
+        time.sleep(0.025)
         sys.stdout.write(char)
         sys.stdout.flush()
 
 
-def main(): #Inconsistencies in functions CHECK
+def main():
     """
-    This is a function docstring
+    Initializes program
     """
-    
-    #gradually_print(WELCOME_PROMPT)
+    #gradual_print(WELCOME_PROMPT)
+    create_deck(cardvalues , DECK)
     dealer = Player("Dealer")
     amount = get_amount_of_users_playing()
     players = get_player_name_from_user(amount)
+
     bet(players)
-    deal_cards(players , dealer)
+    deal_cards(players, dealer)
     check_for_blackjack_after_draw(players)
-    hit_or_stand(players) 
-    end_game(players , dealer)
-    final_part(players, dealer)
-    post_game(players , dealer)
-        #also resets game
+    hit_or_stand(players)
+    end_game(players, dealer)
+    checking_if_worked(players)         #TODO (Delete)
+    # final_part(players, dealer)       #TODO (Maybe remove)
+    post_game(players, dealer)
+    # also resets game
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-
-
-
-
